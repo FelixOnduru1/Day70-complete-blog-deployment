@@ -1,0 +1,41 @@
+{% include "header.html" %}
+  <header class="masthead" style="background-image: url('{{ url_for('static', filename='img/contact-bg.jpg')}}')">
+    <div class="overlay"></div>
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-8 col-md-10 mx-auto">
+          <div class="page-heading">
+            <h1>Messages</h1>
+            <span class="subheading">View your messages.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+<div class="container">
+    <div class="row">
+        {% for message in messages %}
+        <div class="col-lg-4">
+
+            <div class="card text-dark bg-light mb-3" style="max-width: 18rem;">
+                <div class="card-header">
+
+                    <h2>{{ message.name }}</h2>
+
+                </div>
+                <div class="card-body">
+                    <h6 class="card-title">Phone: {{ message.phone }}</h6>
+                    <h6 class="card-title">Email: {{ message.email }}</h6>
+                    <p class="card-text">{{ message.message }}</p>
+                </div>
+                <div class="card-footer">
+                    <small>{{ message.date }}</small>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+
+{% include "footer.html" %}

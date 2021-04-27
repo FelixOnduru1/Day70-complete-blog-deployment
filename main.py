@@ -4,6 +4,7 @@ from flask_ckeditor import CKEditor
 from datetime import date
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import desc
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 from flask_login import UserMixin, login_user, LoginManager, login_required, current_user, logout_user
@@ -11,7 +12,6 @@ from forms import CreatePostForm, RegisterForm, LoginForm, CommentForm
 from flask_gravatar import Gravatar
 from functools import wraps
 import os
-import smtplib
 
 app = Flask(__name__)
 
@@ -87,7 +87,18 @@ class Comment(db.Model):
     parent_post = relationship("BlogPost", back_populates="comments")
     post_id = db.Column(db.Integer, db.ForeignKey("blog_posts.id"))
 
-# db.create_all()
+
+class Message(db.Model):
+    __tablename__ = "messages"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(250), nullable=False)
+    email = db.Column(db.String(250), nullable=False)
+    phone = db.Column(db.String(250), nullable=False)
+    message = db.Column(db.String(500), nullable=False)
+    date = db.Column(db.String(250), nullable=False)
+
+
+db.create_all()
 
 
 def admin_only(f):
@@ -98,21 +109,6 @@ def admin_only(f):
         return f(*args, **kwargs)
 
     return decorated_function
-
-
-my_email = os.environ["EMAIL"]
-
-password = os.environ["EMAIL_PASSWORD"]
-
-
-def send_mail(email_message):
-    with smtplib.SMTP("smtp.gmail.com", 587, timeout=120) as connection:
-        connection.starttls()
-        connection.login(user=my_email, password=password)
-        connection.sendmail(from_addr=my_email,
-                            to_addrs=my_email,
-                            msg=f"Subject:NEW MESSAGE FROM THE ONDURU'S BLOG\n\n{email_message}".encode('utf-8')
-                            )
 
 
 @app.route('/')
@@ -201,11 +197,26 @@ def about():
 def contact():
     if request.method == 'POST':
         data = request.form
-        msg = f"{data['username']}\n{data['email']}\n{data['phone']}\n{data['message']}"
-        send_mail(msg)
+        new_message = Message(
+            name=data["username"],
+            email=data['email'],
+            phone=data['phone'],
+            message=data['message'],
+            date=date.today().strftime("%B %d, %Y")
+        )
+        db.session.add(new_message)
+        db.session.commit()
+
         return redirect(url_for("get_all_posts"))
     else:
         return render_template("contact.html", logged_in=current_user.is_authenticated)
+
+
+@app.route('/messages')
+@admin_only
+def messages():
+    user_messages = Message.query.order_by(desc(Message.id)).all()
+    return render_template("messages.html", logged_in=current_user.is_authenticated, messages=user_messages)
 
 
 @app.route("/new-post", methods=['GET', 'POST'])

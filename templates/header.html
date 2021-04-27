@@ -58,6 +58,11 @@
             <a class="nav-link" href="{{ url_for('logout') }}">Log Out</a>
           </li>
           {% endif %}
+          {% if logged_in and current_user.id == 1:  %}
+            <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('messages') }}">Messages</a>
+          </li>
+          {% endif %}
         </ul>
       </div>
     </div>
