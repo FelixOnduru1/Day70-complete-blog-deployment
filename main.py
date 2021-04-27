@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, flash, abort
+from flask import Flask, render_template, redirect, url_for, flash, abort, request
 from flask_bootstrap import Bootstrap
 from flask_ckeditor import CKEditor
 from datetime import date
@@ -11,9 +11,11 @@ from forms import CreatePostForm, RegisterForm, LoginForm, CommentForm
 from flask_gravatar import Gravatar
 from functools import wraps
 import os
+import smtplib
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', "sqlite:///blog.db")
+
+
 ckeditor = CKEditor(app)
 Bootstrap(app)
 Base = declarative_base()
@@ -35,7 +37,8 @@ def load_user(user_id):
 
 
 # CONNECT TO DB
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
+app.config['SECRET_KEY'] = os.environ["APP_SECRET_KEY"]
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', "sqlite:///blog.db")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 # CONFIGURE TABLES
@@ -95,6 +98,21 @@ def admin_only(f):
         return f(*args, **kwargs)
 
     return decorated_function
+
+
+my_email = os.environ["EMAIL"]
+
+password = os.environ["EMAIL_PASSWORD"]
+
+
+def send_mail(email_message):
+    with smtplib.SMTP("smtp.gmail.com", 587, timeout=120) as connection:
+        connection.starttls()
+        connection.login(user=my_email, password=password)
+        connection.sendmail(from_addr=my_email,
+                            to_addrs=my_email,
+                            msg=f"Subject:NEW MESSAGE FROM THE ONDURU'S BLOG\n\n{email_message}".encode('utf-8')
+                            )
 
 
 @app.route('/')
@@ -179,9 +197,15 @@ def about():
     return render_template("about.html", logged_in=current_user.is_authenticated)
 
 
-@app.route("/contact")
+@app.route("/contact", methods=['GET', 'POST'])
 def contact():
-    return render_template("contact.html", logged_in=current_user.is_authenticated)
+    if request.method == 'POST':
+        data = request.form
+        msg = f"{data['username']}\n{data['email']}\n{data['phone']}\n{data['message']}"
+        send_mail(msg)
+        return redirect(url_for("get_all_posts"))
+    else:
+        return render_template("contact.html", logged_in=current_user.is_authenticated)
 
 
 @app.route("/new-post", methods=['GET', 'POST'])
